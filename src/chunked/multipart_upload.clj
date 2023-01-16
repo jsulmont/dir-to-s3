@@ -12,12 +12,12 @@
    (software.amazon.awssdk.core.async AsyncRequestBody)
    (software.amazon.awssdk.services.s3 S3AsyncClient)
    (software.amazon.awssdk.services.s3.model
-     AbortMultipartUploadRequest
-     CompleteMultipartUploadRequest
-     CreateMultipartUploadRequest
-     ListMultipartUploadsRequest
-     S3Request$Builder
-     UploadPartRequest)))
+    AbortMultipartUploadRequest
+    CompleteMultipartUploadRequest
+    CreateMultipartUploadRequest
+    ListMultipartUploadsRequest
+    ;; S3Request$Builder
+    UploadPartRequest)))
 
 (defn list-multipart-uploads [s3]
   (let [{:keys [^S3AsyncClient client bucket]} s3
@@ -51,7 +51,7 @@
                     (.build))]
     (-> client
         (.abortMultipartUpload request)
-        (cs/then-run #(log/infof "Aborted Multipart upload id='%s'" upload-id ))
+        (cs/then-run #(log/infof "Aborted Multipart upload id='%s'" upload-id))
         (deref))))
 
 (defn complete-multipart-upload [{:keys [^S3AsyncClient client bucket key]} upload-id parts]
@@ -64,7 +64,7 @@
                     (.build))]
     (-> client
         (.completeMultipartUpload request)
-        (cs/then-run #(log/infof "Completed Multipart upload, id='%s'" upload-id ))
+        (cs/then-run #(log/infof "Completed Multipart upload, id='%s'" upload-id))
         (deref))))
 
 (defn confirm-no-outstanding-parts [s3 upload-id]
@@ -86,7 +86,6 @@
     (when (pos? retry)
       (recur (dec retry)))))
 
-
 (defrecord S3MultipartUploadSink [s3
                                   upload-id
                                   part-stages]
@@ -104,8 +103,10 @@
                       (.key key)
                       (.uploadId upload-id)
                       (.partNumber part-number)
-                      (cond-> part-upload-timeout (s3api/override-api-timeouts {:api-call-timeout part-upload-timeout
-                                                                                :api-call-attempt-timeout (java.time.Duration/parse "PT20M")}))
+                      (cond-> part-upload-timeout
+                        (s3api/override-api-timeouts
+                          {:api-call-timeout part-upload-timeout
+                           :api-call-attempt-timeout (java.time.Duration/parse "PT20M")}))
                       (.build))]
       (log/debugf "Uploading part, id='%s', part-number=%05d" upload-id part-number)
       (let [uploaded-part
@@ -130,14 +131,14 @@
     (log/infof "Waiting for %05d part uploads to complete..." (count @part-stages))
     (doto (-> (into-array CompletableFuture @part-stages)
               CompletableFuture/allOf)
-        (cs/then-run #(->> @part-stages
-                           (map deref)
-                           (complete-multipart-upload s3 upload-id)))
-        (cs/exceptionally (fn [ex]
-                              (log/error "part uploading completed with error" ex)
-                              (abort-multipart-upload s3 upload-id)
-                              (confirm-no-outstanding-parts s3 upload-id)))
-        (deref) ;; required to propagate exceptions
+      (cs/then-run #(->> @part-stages
+                         (map deref)
+                         (complete-multipart-upload s3 upload-id)))
+      (cs/exceptionally (fn [ex]
+                          (log/error "part uploading completed with error" ex)
+                          (abort-multipart-upload s3 upload-id)
+                          (confirm-no-outstanding-parts s3 upload-id)))
+      (deref) ;; required to propagate exceptions
       )))
 
 (defn create-buffer-sink [{:keys [^S3AsyncClient client bucket key] :as s3} metadata]
@@ -169,6 +170,4 @@
 
   (doseq [upload-id (->> s3 list-multipart-uploads (map (comp :upload-id d/datafy)))]
     (.println *err* (str "aborting " upload-id))
-    (abort-multipart-upload s3 upload-id))
-
-  )
+    (abort-multipart-upload s3 upload-id)))

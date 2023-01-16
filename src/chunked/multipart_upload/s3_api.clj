@@ -1,6 +1,7 @@
 (ns chunked.multipart-upload.s3-api
   (:require
-   [clojure.datafy :as d])
+   [clojure.datafy :as d]
+   [clojure.core.protocols :refer [Datafiable]])
   (:import
    (software.amazon.awssdk.awscore AwsRequestOverrideConfiguration)
    (software.amazon.awssdk.services.s3.model
@@ -11,17 +12,30 @@
      Owner
      S3ResponseMetadata
      StorageClass
-     UploadPartResponse))
-  )
-
+     UploadPartResponse
+     S3Request$Builder)))
 
 (defn ->s3-metadata [m]
   {"xtdb-metadata" (pr-str m)})
 
+
+(defn ->aws-request-override-configuration [^AwsRequestOverrideConfiguration configuration
+                                            {:keys [api-call-timeout
+                                                    api-call-attempt-timeout
+                                                    ;; TODO handle other attrs
+                                                    ]}]
+  (-> (if configuration
+        (.toBuilder configuration)
+        (AwsRequestOverrideConfiguration/builder))
+      (cond->
+       api-call-timeout (.apiCallTimeout api-call-timeout)
+       api-call-attempt-timeout (.apiCallAttemptTimeout api-call-attempt-timeout))
+      (.build)))
+
 (defn override-api-timeouts
   "Overrides the overall api call timeout (including retries)"
   [^S3Request$Builder builder config]
-  (let [override-config (s3api/->aws-request-override-configuration
+  (let [override-config (->aws-request-override-configuration
                          (.overrideConfiguration builder) config)]
     (.overrideConfiguration builder override-config)))
 
@@ -38,20 +52,9 @@
                    (map ->completed-part)))
       (.build)))
 
-(defn ->aws-request-override-configuration [^AwsRequestOverrideConfiguration configuration
-                                            {:keys [api-call-timeout
-                                                    api-call-attempt-timeout
-                                                    ;; TODO handle other attrs
-                                                    ]}]
-  (-> (if configuration
-        (.toBuilder configuration)
-        (AwsRequestOverrideConfiguration/builder))
-      (cond->
-          api-call-timeout (.apiCallTimeout api-call-timeout)
-          api-call-attempt-timeout (.apiCallAttemptTimeout api-call-attempt-timeout))
-      (.build)))
 
-(extend-protocol d/Datafiable
+
+(extend-protocol Datafiable
   MultipartUpload
   (datafy [d]
     {:upload-id (.uploadId d)

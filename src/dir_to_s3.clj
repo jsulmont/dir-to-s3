@@ -4,19 +4,24 @@
    [clojure.datafy :as d]
    [chunked.output-stream :as c]
    [chunked.multipart-upload :as mpu ])
-    (:import
-     (java.nio.file Paths)))
+  (:import
+   (java.nio.file Paths)
+   (software.amazon.awssdk.services.s3 S3AsyncClient)
+   (software.amazon.awssdk.auth.credentials ProfileCredentialsProvider)
+   ))
 
 (defn dir-to-s3 [dir s3 metadata]
   (let [os (c/output-stream (mpu/create-buffer-sink s3 metadata))]
     (dir/archive-directory dir dir/simple-path-pred os )))
 
 (comment
-  (def s3-client (-> (software.amazon.awssdk.services.s3.S3AsyncClient/builder)
+  (def s3-client (-> (S3AsyncClient/builder)
+                     (.credentialsProvider (. ProfileCredentialsProvider create "jan-juxt"))
                      (.build)))
 
-  (def test-dir "test-dir")
-  (def test-bucket-name "a-test-bucket") ;; should exist
+  (def test-dir "/Users/jan/juxt/dir-to-s3")
+
+  (def test-bucket-name "juxt-test-bucket") ;; should exist
 
   (def s3  {:client s3-client
             :bucket test-bucket-name
