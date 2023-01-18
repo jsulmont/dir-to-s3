@@ -99,9 +99,10 @@
 
 (defn- output-stream-delegate [queue output]
   (let [index (atom 0)]
-    (->BlockingQueueOutputStreamDelegate queue
-                                         (fn buffer-index-fn [] (swap! index (comp int inc)))
-                                         output)))
+    (->BlockingQueueOutputStreamDelegate
+      queue
+      (fn buffer-index-fn [] (swap! index (comp int inc)))
+      output)))
 
 (defn filled-buffer-queue
   "

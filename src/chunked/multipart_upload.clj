@@ -81,7 +81,8 @@
           (seq))
       (log/infof "No outstanding multipart upload with id='%s' found" upload-id)
       (do
-        (log/infof "Found outstanding multipart upload, id='%s', attempting to abort, retries remaining %02d" upload-id retry)
+        (log/infof "Found outstanding multipart upload, id='%s', attempting to abort, retries remaining %02d"
+                   upload-id retry)
         (abort-multipart-upload s3 upload-id)))
     (when (pos? retry)
       (recur (dec retry)))))
@@ -96,6 +97,7 @@
     ;; response derived data.
     ;; The CompletableFuture for those calls are then stored so that
     ;; we can wait until all uploads have completed (see close)
+    (prn ['S3MultipartUploadSink upload-id part-stages])
     (let [{:keys [^S3AsyncClient client bucket key part-upload-timeout]} s3
           part-number (:index metadata)
           request (-> (UploadPartRequest/builder)

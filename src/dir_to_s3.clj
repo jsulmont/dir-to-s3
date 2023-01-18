@@ -7,34 +7,37 @@
   (:import
    (java.nio.file Paths)
    (software.amazon.awssdk.services.s3 S3AsyncClient)
-   (software.amazon.awssdk.auth.credentials ProfileCredentialsProvider)
-   ))
+   (software.amazon.awssdk.auth.credentials ProfileCredentialsProvider)))
 
 (defn dir-to-s3 [dir s3 metadata]
   (let [os (c/output-stream (mpu/create-buffer-sink s3 metadata))]
     (dir/archive-directory dir dir/simple-path-pred os )))
 
 (comment
-  (def s3-client (-> (S3AsyncClient/builder)
-                     (.credentialsProvider (. ProfileCredentialsProvider create "jan-juxt"))
-                     (.build)))
+  (do
 
-  (def test-dir "/Users/jan/juxt/dir-to-s3")
+    (def s3-client (-> (S3AsyncClient/builder)
+                       (.credentialsProvider (. ProfileCredentialsProvider create "jan-juxt"))
+                       (.build)))
 
-  (def test-bucket-name "juxt-test-bucket") ;; should exist
+    (def test-dir "/Users/jan/juxt/souffle")
 
-  (def s3  {:client s3-client
-            :bucket test-bucket-name
-            :key "foo/bar/baz.tgz"
-            :part-upload-timeout (java.time.Duration/parse "PT10M")})
+    (def test-bucket-name "juxt-test-bucket") ;; should exist
 
-  (def  metadata {:xtdb.checkpoint/cp-format {:index-version 20,
-                                              :xtdb.rocksdb/version "6"},
-                  :tx {:xtdb.api/tx-time #inst "2022-07-18T13:32:12.793-00:00",
-                       :xtdb.api/tx-id 9},
-                  :xtdb.checkpoint/checkpoint-at #inst "2022-07-21T10:05:01.908-00:00"})
+    (def s3  {:client s3-client
+              :bucket test-bucket-name
+              :key "foo/bar/baz.tgz"
+              :part-upload-timeout (java.time.Duration/parse "PT10M")})
 
-  (dir-to-s3 (Paths/get test-dir  (make-array String 0)) s3 metadata )
+    (def  metadata {:xtdb.checkpoint/cp-format {:index-version 20,
+                                                :xtdb.rocksdb/version "6"},
+                    :tx {:xtdb.api/tx-time #inst "2022-07-18T13:32:12.793-00:00",
+                         :xtdb.api/tx-id 9},
+                    :xtdb.checkpoint/checkpoint-at (java.util.Date.)}))
+
+  (dir-to-s3 (Paths/get test-dir  (make-array String 0)) s3 metadata)
+
+
 
   ;; tidy up failed uploads - if you don't do this you have space
   ;; allocated in S3 that is not 'obvious' and you still have to pay
@@ -42,4 +45,7 @@
   (doseq [upload-id (->> s3 mpu/list-multipart-uploads (map (comp :upload-id d/datafy)))]
     (.println *err* (str "aborting " upload-id))
     (mpu/abort-multipart-upload s3 upload-id))
-  )
+
+
+
+  :ok)

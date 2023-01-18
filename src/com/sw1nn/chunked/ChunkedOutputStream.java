@@ -15,31 +15,31 @@ public class ChunkedOutputStream extends java.io.OutputStream
     private ChunkedOutputStreamDelegate delegate;
 
     public ChunkedOutputStream(ChunkedOutputStreamDelegate delegate) throws IOException {
-	this.delegate = delegate;
+        this.delegate = delegate;
     }
 
     @Override
     public void write (int b) throws IOException {
-	delegate.writeInt(b);
+        delegate.writeInt(b);
     }
 
     @Override
     public void write(byte[] b, int offset, int len) throws IOException {
-	delegate.writeArraySlice(b,offset,len);
+        delegate.writeArraySlice(b,offset,len);
     }
 
     @Override
     public void write (byte[] b)  throws IOException {
-	delegate.writeArray(b);
+        delegate.writeArray(b);
     }
 
     @Override
     public void flush() throws IOException {
-	delegate.flush();
+        delegate.flush();
     }
 
     @Override
     public void close()  throws IOException{
-	delegate.close();
+        delegate.close();
     }
 }

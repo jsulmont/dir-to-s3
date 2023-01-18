@@ -6,15 +6,17 @@
 
 (defn add-entry! [os path entry-name]
   (let [entry (.createArchiveEntry os path entry-name (make-array LinkOption 0))]
-      (.putArchiveEntry os entry)
-      (with-open [is (Files/newInputStream path (make-array OpenOption 0))]
-        (io/copy is os))
-      (.closeArchiveEntry os)))
+    (.putArchiveEntry os entry)
+    (with-open [is (Files/newInputStream path (make-array OpenOption 0))]
+      (io/copy is os))
+    (.closeArchiveEntry os)))
 
-(defn archive-directory [^Path dir path-pred dest-os]
-  (with-open [tgz (-> dest-os
-                      GzipCompressorOutputStream.
-                      TarArchiveOutputStream.)]
+(defn archive-directory
+  [^Path dir path-pred dest-os]
+  (with-open [tgz (doto (-> dest-os
+                            GzipCompressorOutputStream.
+                            TarArchiveOutputStream.)
+                    (.setLongFileMode (. TarArchiveOutputStream LONGFILE_POSIX)))]
     (doseq [^Path path (-> (Files/walk dir Integer/MAX_VALUE (make-array FileVisitOption 0))
                            .iterator
                            iterator-seq)

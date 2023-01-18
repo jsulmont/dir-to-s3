@@ -5,25 +5,25 @@
   (:import
    (software.amazon.awssdk.awscore AwsRequestOverrideConfiguration)
    (software.amazon.awssdk.services.s3.model
-     CompletedMultipartUpload
-     CompletedPart
-     Initiator
-     MultipartUpload
-     Owner
-     S3ResponseMetadata
-     StorageClass
-     UploadPartResponse
-     S3Request$Builder)))
+    CompletedMultipartUpload
+    CompletedPart
+    Initiator
+    MultipartUpload
+    Owner
+    S3ResponseMetadata
+    StorageClass
+    UploadPartResponse
+    S3Request$Builder)))
 
 (defn ->s3-metadata [m]
   {"xtdb-metadata" (pr-str m)})
 
-
-(defn ->aws-request-override-configuration [^AwsRequestOverrideConfiguration configuration
-                                            {:keys [api-call-timeout
-                                                    api-call-attempt-timeout
-                                                    ;; TODO handle other attrs
-                                                    ]}]
+(defn ->aws-request-override-configuration
+  [^AwsRequestOverrideConfiguration configuration
+   {:keys [api-call-timeout
+           api-call-attempt-timeout
+           ;; TODO handle other attrs
+           ]}]
   (-> (if configuration
         (.toBuilder configuration)
         (AwsRequestOverrideConfiguration/builder))
@@ -51,8 +51,6 @@
                    (sort-by :part-number) ;; required by S3 API
                    (map ->completed-part)))
       (.build)))
-
-
 
 (extend-protocol Datafiable
   MultipartUpload
@@ -93,4 +91,5 @@
           api-call-attempt-timeout (.apiCallAttemptTimeout d)]
       (cond-> {}
         (.isPresent api-call-timeout) (assoc :api-call-timeout (.get api-call-timeout))
-        (.isPresent api-call-attempt-timeout) (assoc :api-call-attempt-timeout (.get api-call-attempt-timeout))))))
+        (.isPresent api-call-attempt-timeout) (assoc :api-call-attempt-timeout
+                                                     (.get api-call-attempt-timeout))))))
