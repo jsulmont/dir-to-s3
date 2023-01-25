@@ -1,5 +1,4 @@
 (ns chunked.output-stream
-  (:require [juc-interop.completion-stage :as cs])
   (:import
    (chunked ChunkedOutputStream ChunkedOutputStreamDelegate)
    (java.io Flushable IOException)
@@ -42,11 +41,12 @@
   (let [buffer (wrapped-take queue)]
     (-> output
         (write-async! buffer {:index buffer-index})
-        (cs/when-complete
-         (fn [_res _ex]
-           (->> buffer
-                (.clear)
-                (.put queue))))
+        (.whenComplete
+         (reify java.util.function.BiConsumer
+           (accept [_ _ _]
+             (->> buffer
+                  (.clear)
+                  (.put queue)))))
         (deref))))
 
 

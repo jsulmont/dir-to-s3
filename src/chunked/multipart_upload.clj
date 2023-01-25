@@ -1,11 +1,10 @@
 (ns chunked.multipart-upload
   (:require
-   [chunked.output-stream :as chunked]
    [chunked.multipart-upload.s3-api :as s3api]
+   [chunked.output-stream :as chunked]
    [clojure.datafy :as d]
    [clojure.java.io :as io]
-   [clojure.tools.logging :as log]
-   [juc-interop.completion-stage :as cs])
+   [clojure.tools.logging :as log])
   (:import
    (java.lang AutoCloseable)
    (java.util.concurrent CompletableFuture)
@@ -31,7 +30,7 @@
         (->> (map d/datafy)))))
 
 (defn create-multipart-upload
-  [{:keys [^S3AsyncClient client bucket key] :as s3} metadata]
+  [{:keys [^S3AsyncClient client bucket key]} metadata]
   (let [request (-> (CreateMultipartUploadRequest/builder)
                     (.bucket bucket)
                     (.key key)
@@ -43,7 +42,7 @@
         (.uploadId))))
 
 (defn abort-multipart-upload
-  [{:keys [^S3AsyncClient client bucket key] :as s3} upload-id]
+  [{:keys [^S3AsyncClient client bucket key]} upload-id]
 ;; https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/services/s3/S3AsyncClient.html#abortMultipartUpload-software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest-
 
   (let [request (-> (AbortMultipartUploadRequest/builder)
@@ -53,7 +52,7 @@
                     (.build))]
     (-> client
         (.abortMultipartUpload request)
-        (cs/then-run #(log/infof "Aborted Multipart upload id='%s'" upload-id))
+        (.thenRun #(log/infof "Aborted Multipart upload id='%s'" upload-id))
         (deref))))
 
 (defn complete-multipart-upload
@@ -67,7 +66,7 @@
                     (.build))]
     (-> client
         (.completeMultipartUpload request)
-        (cs/then-run #(log/infof "Completed Multipart upload, id='%s'" upload-id))
+        (.thenRun #(log/infof "Completed Multipart upload, id='%s'" upload-id))
         (deref))))
 
 (defn confirm-no-outstanding-parts [s3 upload-id]
@@ -109,8 +108,8 @@
                       (.partNumber part-number)
                       (cond-> part-upload-timeout
                         (s3api/override-api-timeouts
-                          {:api-call-timeout part-upload-timeout
-                           :api-call-attempt-timeout (java.time.Duration/parse "PT20M")}))
+                         {:api-call-timeout part-upload-timeout
+                          :api-call-attempt-timeout (java.time.Duration/parse "PT20M")}))
                       (.build))]
       (log/debugf "Uploading part, id='%s', part-number=%05d" upload-id part-number)
       (let [uploaded-part
@@ -120,10 +119,12 @@
                                  .flip
                                  AsyncRequestBody/fromByteBuffer ;; copies
                                  ))
-                (cs/then-apply (fn [result]
-                                 (-> result
-                                     (d/datafy)
-                                     (assoc :part-number part-number)))))]
+                (.thenApply (reify java.util.function.Function
+                              (apply [_ result]
+                                (-> result
+                                    (d/datafy)
+                                    (assoc :part-number part-number))))))]
+
         (swap! part-stages conj uploaded-part)
         uploaded-part)))
   AutoCloseable
@@ -135,13 +136,14 @@
     (log/infof "Waiting for %05d part uploads to complete..." (count @part-stages))
     (doto (-> (into-array CompletableFuture @part-stages)
               CompletableFuture/allOf)
-      (cs/then-run #(->> @part-stages
-                         (map deref)
-                         (complete-multipart-upload s3 upload-id)))
-      (cs/exceptionally (fn [ex]
+      (.thenRun  #(->> @part-stages
+                       (map deref)
+                       (complete-multipart-upload s3 upload-id)))
+      (.exceptionally (reify java.util.function.Function
+                        (apply [_ ex]
                           (log/error "part uploading completed with error" ex)
                           (abort-multipart-upload s3 upload-id)
-                          (confirm-no-outstanding-parts s3 upload-id)))
+                          (confirm-no-outstanding-parts s3 upload-id))))
       (deref) ;; required to propagate exceptions
       )))
 

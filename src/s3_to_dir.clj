@@ -20,7 +20,6 @@
                             (.key key)
                             (.build))
                         (AsyncResponseTransformer/toBlockingInputStream))
-
             (.handle (reify BiFunction
                        (apply [_ resp e]
                          (if e
@@ -44,15 +43,10 @@
                        (.region (Region/EU-WEST-1))
                        (.build)))
 
-    (def test-dir "/tmp/aws-doc-sdk-examples")
-
-    (def test-bucket-name "jan-bucket1") ;; should exist
-
     (def s3  {:client s3-client
               :bucket "jan-bucket1"
-              :key "x/aws-doc-2023-01-24T14:25:52.416-00:00.tgz"}))
+              :key "x/aws-doc-2023-01-25T07:43:30.547-00:00.tgz"}))
 
-  (s3-to-dir s3 "/tmp/x")
-
+  (s3-to-dir s3 "/tmp/z")
 
   :ok)
