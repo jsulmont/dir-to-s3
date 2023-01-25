@@ -16,10 +16,10 @@
     CompleteMultipartUploadRequest
     CreateMultipartUploadRequest
     ListMultipartUploadsRequest
-    ;; S3Request$Builder
     UploadPartRequest)))
 
-(defn list-multipart-uploads [s3]
+(defn list-multipart-uploads
+  [s3]
   (let [{:keys [^S3AsyncClient client bucket]} s3
         request (-> (ListMultipartUploadsRequest/builder)
                     (.bucket bucket)
@@ -30,7 +30,8 @@
         (.uploads)
         (->> (map d/datafy)))))
 
-(defn create-multipart-upload [{:keys [^S3AsyncClient client bucket key] :as s3} metadata]
+(defn create-multipart-upload
+  [{:keys [^S3AsyncClient client bucket key] :as s3} metadata]
   (let [request (-> (CreateMultipartUploadRequest/builder)
                     (.bucket bucket)
                     (.key key)
@@ -41,7 +42,8 @@
         (deref)
         (.uploadId))))
 
-(defn abort-multipart-upload [{:keys [^S3AsyncClient client bucket key] :as s3} upload-id]
+(defn abort-multipart-upload
+  [{:keys [^S3AsyncClient client bucket key] :as s3} upload-id]
 ;; https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/services/s3/S3AsyncClient.html#abortMultipartUpload-software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest-
 
   (let [request (-> (AbortMultipartUploadRequest/builder)
@@ -54,7 +56,8 @@
         (cs/then-run #(log/infof "Aborted Multipart upload id='%s'" upload-id))
         (deref))))
 
-(defn complete-multipart-upload [{:keys [^S3AsyncClient client bucket key]} upload-id parts]
+(defn complete-multipart-upload
+  [{:keys [^S3AsyncClient client bucket key]} upload-id parts]
   (let [multipart-upload (s3api/->completed-multipart-upload parts)
         request (-> (CompleteMultipartUploadRequest/builder)
                     (.bucket bucket)
@@ -97,7 +100,6 @@
     ;; response derived data.
     ;; The CompletableFuture for those calls are then stored so that
     ;; we can wait until all uploads have completed (see close)
-    (prn ['S3MultipartUploadSink upload-id part-stages])
     (let [{:keys [^S3AsyncClient client bucket key part-upload-timeout]} s3
           part-number (:index metadata)
           request (-> (UploadPartRequest/builder)
@@ -143,7 +145,8 @@
       (deref) ;; required to propagate exceptions
       )))
 
-(defn create-buffer-sink [{:keys [^S3AsyncClient client bucket key] :as s3} metadata]
+(defn create-buffer-sink
+  [{:keys [bucket key] :as s3} metadata]
   (let [upload-id (create-multipart-upload s3 metadata)
         part-stages (atom nil)]
     (log/infof "Initiated Multipart Upload to s3://%s/%s id='%s'" bucket key upload-id)

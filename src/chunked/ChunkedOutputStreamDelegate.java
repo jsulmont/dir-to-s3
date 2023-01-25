@@ -1,4 +1,4 @@
-package com.sw1nn.chunked;
+package chunked;
 
 import java.io.IOException;
 import java.io.Flushable;

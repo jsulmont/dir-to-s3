@@ -1,7 +1,7 @@
 (ns chunked.output-stream
   (:require [juc-interop.completion-stage :as cs])
   (:import
-   (com.sw1nn.chunked ChunkedOutputStream ChunkedOutputStreamDelegate)
+   (chunked ChunkedOutputStream ChunkedOutputStreamDelegate)
    (java.io Flushable IOException)
    (java.lang AutoCloseable)
    (java.nio ByteBuffer)
@@ -54,7 +54,7 @@
                                             buffer-index-fn
                                             output]
   ChunkedOutputStreamDelegate
-  (writeInt [this b]
+  (writeInt [_this b]
     (let [buf (.peek queue)]
       (.put buf b)
       (when (zero? (.remaining buf))

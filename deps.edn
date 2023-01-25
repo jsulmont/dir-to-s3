@@ -1,13 +1,11 @@
 {:paths ["src" "resources" "test" "target/classes"]
  :deps {org.clojure/test.check {:mvn/version "1.1.1"}
-        software.amazon.awssdk/s3 {:mvn/version "2.19.18"}
-        software.amazon.awssdk/sts {:mvn/version "2.19.18"}
+        software.amazon.awssdk/s3 {:mvn/version "2.19.22"}
+        software.amazon.awssdk/sts {:mvn/version "2.19.22"}
         org.apache.commons/commons-compress {:mvn/version "1.22"}
         org.clojure/tools.logging           {:mvn/version "1.2.4"}
-        ch.qos.logback/logback-classic {:mvn/version "1.4.5"}
-        org.slf4j/jcl-over-slf4j {:mvn/version "2.0.6"}
-        org.slf4j/jul-to-slf4j {:mvn/version "2.0.6"}
-        org.slf4j/log4j-over-slf4j {:mvn/version "2.0.6"}}
+        ch.qos.logback/logback-classic {:mvn/version "1.3.5"}
+        }
 
  :jvm-opts ["-XX:+UnlockDiagnosticVMOptions -XX:Inline=false"]
  :aliases {:dev {:extra-paths ["dev"]}

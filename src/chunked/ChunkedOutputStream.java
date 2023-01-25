@@ -1,4 +1,4 @@
-package com.sw1nn.chunked;
+package chunked;
 
 import java.nio.ByteBuffer;
 import java.io.IOException;
